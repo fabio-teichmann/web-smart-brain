@@ -5,21 +5,147 @@ import Logo from './components/Logo/Logo';
 import ImageLinkForm from './components/ImageLinkForm/ImageLinkForm';
 import Rank from './components/Rank/Rank';
 import ParticlesBg from 'particles-bg'
+// import Clarifai from 'clarifai';
+import FaceRecognition from './components/FaceRecognition/FaceRecognition';
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// In this section, we set the user authentication, app ID, model details, and the URL
+// of the image we want as an input. Change these strings to run your own example.
+/////////////////////////////////////////////////////////////////////////////////////////
+
+const USER_ID = 'fabio-teichmann';
+// Your PAT (Personal Access Token) can be found in the portal under Authentification
+const PAT = 'b280d39a79464394b6ffed935c3d623e';
+const APP_ID = 'smart-brain-app';
+// Change these to whatever model and image URL you want to use
+const MODEL_ID = 'face-detection';
+const MODEL_VERSION_ID = '45fb9a671625463fa646c3523a3087d5';    
+// let IMAGE_URL = 'https://www.online-tech-tips.com/wp-content/uploads/2022/02/faces.jpeg';
+let IMAGE_URL = 'https://img.freepik.com/free-photo/portrait-white-man-isolated_53876-40306.jpg';
+
+const raw = JSON.stringify({
+    "user_app_id": {
+        "user_id": USER_ID,
+        "app_id": APP_ID
+    },
+    "inputs": [
+        {
+            "data": {
+                "image": {
+                    "url": IMAGE_URL
+                }
+            }
+        }
+    ]
+});
+
+const requestOptions = {
+    method: 'POST',
+    headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Key ' + PAT
+    },
+    body: raw
+};
+
+// NOTE: MODEL_VERSION_ID is optional, you can also call prediction with the MODEL_ID only
+// https://api.clarifai.com/v2/models/{YOUR_MODEL_ID}/outputs
+// this will default to the latest version_id
 
 
-function App() {
-  return (
-    <div className="App">
-      <ParticlesBg type="cobweb" bg={true} />
-      <Navigation />
-      <Logo />
-      <Rank /> 
-      <ImageLinkForm />
-      {/* { 
-      
-      <FaceRecognition />} */}
-    </div>
-  );
+
+
+
+// const app = new Clarifai.App({
+//   apiKey: 'b280d39a79464394b6ffed935c3d623e'
+// });
+// MODEL_ID: 45fb9a671625463fa646c3523a3087d5
+
+class App extends React.Component {
+  constructor() {
+    super();
+    this.state = {
+      input: '',
+      imageUrl: 'https://img.freepik.com/free-photo/portrait-white-man-isolated_53876-40306.jpg',
+      box: {},
+    }
+  }
+
+  calculateFaceLocation = (data) => {
+    const clarifaiFace = data.outputs['0'].data.regions[0].region_info.bounding_box
+    // const {top, left, right, bottom} = clarifaiFace;
+    const image = document.getElementById('inputImage');
+    const width = Number(image.width);
+    const height = Number(image.height);
+    // console.log(width, height);
+    // const bbPoints = {
+    //   p1: [left * width, top * height],
+    //   p2: [right * width, top * height],
+    //   p3: [right * width, bottom * height],
+    //   p4: [left * width, bottom * height],
+    // }
+    // console.log(bbPoints);
+
+    return {
+      leftCol: clarifaiFace.left_col * width,
+      topRow: clarifaiFace.top_row * height,
+      rightCol: width - (clarifaiFace.right_col * width),
+      bottomRow: height - (clarifaiFace.bottom_row * height),
+    }
+  }
+
+
+  displayFaceBox = (box) => {
+    console.log('box:', box);
+    this.setState({box: box});
+  }
+
+
+  onInputChange = (event) => {
+    this.setState({input: event.target.value}) // need to fix this
+    IMAGE_URL = event.target.value;
+    console.log(event.target.value);
+  }
+
+
+  onButtonSubmit = () => {
+    this.setState({imageUrl: this.state.input})
+    console.log('click');
+
+    fetch("https://api.clarifai.com/v2/models/" + MODEL_ID + "/versions/" + MODEL_VERSION_ID + "/outputs", requestOptions)
+        .then(response => {
+          // console.log(response);
+          return response.json();
+        })
+        .then(result => {
+          this.displayFaceBox(this.calculateFaceLocation(result));
+
+          // console.log(result);
+          // console.log(result.outputs);
+          // console.log(result.outputs['0'].data.regions[0].region_info.bounding_box)
+        })
+        .catch(error => console.log('error', error));
+  }
+
+
+  render() {
+    let faceRecognition;
+    if (this.state.imageUrl !== '') {
+      faceRecognition = <FaceRecognition box={this.state.box} imageUrl={this.state.imageUrl}/>
+    }
+    return (
+      <div className="App">
+        <ParticlesBg type="cobweb" bg={true} />
+        <Navigation />
+        <Logo />
+        <Rank /> 
+        <ImageLinkForm onInputChange={this.onInputChange} onButtonSubmit={this.onButtonSubmit}/>
+        {/* <FaceRecognition imageUrl={this.state.imageUrl}/> */}
+        {faceRecognition}
+      </div>
+    );
+  }
+  
 }
 
 export default App;
