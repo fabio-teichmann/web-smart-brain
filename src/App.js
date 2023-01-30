@@ -55,9 +55,6 @@ const requestOptions = {
 // this will default to the latest version_id
 
 
-
-
-
 // const app = new Clarifai.App({
 //   apiKey: 'b280d39a79464394b6ffed935c3d623e'
 // });
@@ -72,8 +69,31 @@ class App extends React.Component {
       box: {},
       route: 'signin',
       isSignedIn: false,
+      user: {
+        id: '',
+        name: '',
+        email: '', 
+        entries: 0,
+        joined: '',
+      }
     }
   }
+
+  loadUser = (data) => {
+    this.setState({user: {
+      id: data.id,
+      name: data.name,
+      email: data.email, 
+      entries: data.entries,
+      joined: data.joined,
+    }})
+  }
+
+  // componentDidMount() {
+  //   fetch('http://localhost:3000')
+  //     .then(response => response.json())
+  //     .then(console.log)
+  // }
 
   calculateFaceLocation = (data) => {
     const clarifaiFace = data.outputs['0'].data.regions[0].region_info.bounding_box
@@ -81,14 +101,6 @@ class App extends React.Component {
     const image = document.getElementById('inputImage');
     const width = Number(image.width);
     const height = Number(image.height);
-    // console.log(width, height);
-    // const bbPoints = {
-    //   p1: [left * width, top * height],
-    //   p2: [right * width, top * height],
-    //   p3: [right * width, bottom * height],
-    //   p4: [left * width, bottom * height],
-    // }
-    // console.log(bbPoints);
 
     return {
       leftCol: clarifaiFace.left_col * width,
@@ -167,7 +179,7 @@ class App extends React.Component {
         : (
             (route === 'signin' || route === 'signout')
             ? <SignIn onRouteChange={this.onRouteChange}/>
-            : <Register onRouteChange={this.onRouteChange}/>
+            : <Register loadUser={this.loadUser} onRouteChange={this.onRouteChange}/>
         )
         }
       </div>
