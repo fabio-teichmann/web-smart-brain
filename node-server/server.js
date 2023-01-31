@@ -1,6 +1,24 @@
 const express = require('express');
 const bcrypt = require('bcrypt-nodejs');
 const cors = require('cors');
+const knex = require('knex');
+
+const db = knex({
+    client: 'pg',
+    connection: {
+        host: '127.0.0.1',
+        port: 5444,
+        user: 'fabioteichmann',
+        password: '',
+        database: 'smart-brain'
+    }
+});
+
+// query returns a promise (like fetch)
+db.select('*').from('users').then(data => {
+    console.log(data);
+});
+
 
 const database = {
     users: [
@@ -67,13 +85,11 @@ app.post('/register', (req, res) => {
         // console.log(hash);
     });
     // create new user
-    database.users.push({
-        id: '125',
-        name: name,
+    db('users').insert({
         email: email,
-        entries: 0,
-        joined: new Date()
-    });
+        name: name,
+        joined: new Date(),
+    }).then(console.log)
     res.json(database.users[database.users.length-1]);
 })
 
