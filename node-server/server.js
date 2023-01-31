@@ -15,9 +15,9 @@ const db = knex({
 });
 
 // query returns a promise (like fetch)
-db.select('*').from('users').then(data => {
-    console.log(data);
-});
+// db.select('*').from('users').then(data => {
+//     console.log(data);
+// });
 
 
 const database = {
@@ -60,41 +60,52 @@ app.get('/', (req, res) => {
 
 // SIGN-IN
 app.post('/signin', (req, res) => {
-    // bcrypt.compare("apples", '$2a$10$bM.r2lbiAfjNj3wayvFYg.qHcW1PFvFExEzXgknYSk0/8WLFumJ2G', function(err, res) {
-    //     // res == true
-    //     console.log('first guess', res);
-    // });
-    // bcrypt.compare("veggies", '$2a$veggies$v.r2lbiAfjNj3wayvFYg.qHcW1PFvFExEzXgknYSk0/8WLFumJ2G', function(err, res) {
-    //     // res == true
-    //     console.log('second guess', res);
-    // });
-
-    if (req.body.email === database.users[0].email && req.body.password === database.users[0].password) {
-        res.json(database.users[0]);
-    } else {
-        res.status(400).json('error logging in');
-    }
-    res.json('sign in');
+    db.select('email', 'hash').from('login')
+        .where('email', '=', req.body.email)
+        .then(data => {
+            const isValid = bcrypt.compareSync(req.body.password, data[0].hash);
+            if (isValid) {
+                return db.select('*').from('users')
+                    .where('email', '=', req.body.email)
+                    .then(user => {
+                        res.json(user[0])
+                    })
+                    .catch(err => res.status(400).json('wrong credentials'))
+            } else {
+                res.status(400).json('wrong credentials');
+            }
+        })
+        .catch(err => res.status(400).json('wrong credentials'))
 })
 
 // REGISTER
 app.post('/register', (req, res) => {
     const { email, name, password } = req.body;
-    bcrypt.hash(password, null, null, function(err, hash) {
-        // Store hash in your password DB.
-        // console.log(hash);
-    });
-    // create new user
-    db('users')
-        .returning('*')
-        .insert({
-        email: email,
-        name: name,
-        joined: new Date(),
-    }).then(user => {
-        res.json(user);
-    }).catch(err => res.status(400).json('unable to register'))
+    const hash = bcrypt.hashSync(password);
     
+    db.transaction(trx => {
+        trx.insert({
+            hash: hash,
+            email: email,
+        })
+        .into('login')
+        .returning('email')
+        .then(loginEmail => {
+            return db('users')
+                .returning('*')
+                .insert({
+                email: loginEmail[0].email,
+                name: name,
+                joined: new Date(),
+            })
+            .then(user => {
+                res.json(user);
+            })
+        })
+        .then(trx.commit)
+        .catch(trx.rollback)
+    })
+    .catch(err => res.status(400).json('unable to register'))
 })
 
 // PROFILE
