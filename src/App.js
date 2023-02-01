@@ -80,13 +80,17 @@ class App extends React.Component {
   }
 
   loadUser = (data) => {
-    this.setState({user: {
+    console.log('app-loadUser-data:', data);
+    this.setState((data) => ({
+      user: {
       id: data.id,
       name: data.name,
       email: data.email, 
       entries: data.entries,
       joined: data.joined,
     }})
+    )
+    console.log('app-loadUser-state:', this.state);
   }
 
   // componentDidMount() {
@@ -112,7 +116,7 @@ class App extends React.Component {
 
 
   displayFaceBox = (box) => {
-    console.log('box:', box);
+    // console.log('box:', box);
     this.setState({box: box});
   }
 
@@ -120,13 +124,13 @@ class App extends React.Component {
   onInputChange = (event) => {
     this.setState({input: event.target.value}) // need to fix this
     IMAGE_URL = event.target.value;
-    console.log(event.target.value);
+    // console.log(event.target.value);
   }
 
 
   onButtonSubmit = () => {
     this.setState({imageUrl: this.state.input})
-    console.log('click');
+    // console.log('click');
 
     fetch("https://api.clarifai.com/v2/models/" + MODEL_ID + "/versions/" + MODEL_VERSION_ID + "/outputs", requestOptions)
         .then(response => {
@@ -168,6 +172,7 @@ class App extends React.Component {
 
 
   render() {
+    console.log('app-render:', this.state);
     const { isSignedIn, imageUrl, route, box, user} = this.state;
     let faceRecognition;
     if (imageUrl !== '') {

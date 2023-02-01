@@ -23,19 +23,20 @@ class Register extends React.Component {
     }
 
     onSubmitRegister = () => {
-        const {name, email, password } = this.state;
+        // const {name, email, password } = this.state;
         fetch('http://localhost:3000/register', {
             method: 'post',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                email: email,
-                password: password,
-                name: name
+                email: this.state.email,
+                password: this.state.password,
+                name: this.state.name
             })
         })
         .then(response => response.json())
         .then(user => {
             if (user){
+                console.log('register-submit:', user);
                 this.props.loadUser(user);
                 this.props.onRouteChange('home');
             }
@@ -45,7 +46,7 @@ class Register extends React.Component {
     }
 
     render() {
-        return (
+        return ( 
             <article className="br3 ba dark-gray b--black-10 mv4 w-100 w-50-m w25-1 mw6 shadow-5 center">
                 <main className="pa4 black-80">
                     <div className="measure">
