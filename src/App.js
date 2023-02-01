@@ -59,6 +59,21 @@ const requestOptions = {
 //   apiKey: 'b280d39a79464394b6ffed935c3d623e'
 // });
 // MODEL_ID: 45fb9a671625463fa646c3523a3087d5
+const initialState = {
+  input: '',
+  imageUrl: '', //'https://img.freepik.com/free-photo/portrait-white-man-isolated_53876-40306.jpg',
+  box: {},
+  route: 'signin',
+  isSignedIn: false,
+  user: {
+    id: '',
+    name: '',
+    email: '', 
+    entries: 0,
+    joined: '',
+  }
+}
+
 
 class App extends React.Component {
   constructor() {
@@ -81,7 +96,7 @@ class App extends React.Component {
 
   loadUser = (data) => {
     console.log('app-loadUser-data:', data);
-    this.setState((data) => ({
+    this.setState({
       user: {
       id: data.id,
       name: data.name,
@@ -89,7 +104,7 @@ class App extends React.Component {
       entries: data.entries,
       joined: data.joined,
     }})
-    )
+    
     console.log('app-loadUser-state:', this.state);
   }
 
@@ -123,47 +138,59 @@ class App extends React.Component {
 
   onInputChange = (event) => {
     this.setState({input: event.target.value}) // need to fix this
-    IMAGE_URL = event.target.value;
+    // IMAGE_URL = event.target.value;
     // console.log(event.target.value);
   }
 
 
   onButtonSubmit = () => {
     this.setState({imageUrl: this.state.input})
-    // console.log('click');
-
+    // console.log(this.state.input, this.state.imageUrl);
+    // fetch('http://localhost:3000/imageurl', {
+    //     method: 'post',
+    //     headers: {'Content-Type': 'application/json'},
+    //     body: JSON.stringify({
+    //       input: this.state.imageUrl,
+    //     })
+    //   })
     fetch("https://api.clarifai.com/v2/models/" + MODEL_ID + "/versions/" + MODEL_VERSION_ID + "/outputs", requestOptions)
-        .then(response => {
-          // console.log(response);
-          return response.json();
+    // .then(response => {
+    //   response.json();
+    //   console.log(response);
+    // })  
+    .then(response => {
+        console.log('2nd response:', response);
+        return response.json();
+      })
+    .then(result => {
+      console.log(result);
+      if (result) {
+        fetch('http://localhost:3000/image', {
+          method: 'put',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            id: this.state.user.id,
+          })
         })
-        .then(result => {
-          if (result) {
-            fetch('http://localhost:3000/image', {
-              method: 'put',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({
-                id: this.state.user.id,
-              })
-            })
-            .then(response => response.json())
-            .then(count => {
-              this.setState(Object.assign(this.state.user, {entries: count}))
-            })
-          }
-          this.displayFaceBox(this.calculateFaceLocation(result));
+        .then(response => response.json())
+        .then(count => {
+          this.setState(Object.assign(this.state.user, {entries: count}))
+        })
+        .catch(console.log);
+      }
+      this.displayFaceBox(this.calculateFaceLocation(result));
 
-          // console.log(result);
-          // console.log(result.outputs);
-          // console.log(result.outputs['0'].data.regions[0].region_info.bounding_box)
-        })
-        .catch(error => console.log('error', error));
+      // console.log(result);
+      // console.log(result.outputs);
+      // console.log(result.outputs['0'].data.regions[0].region_info.bounding_box)
+    })
+    .catch(error => console.log('error', error));
   }
 
 
   onRouteChange = (route) => {
     if (route === 'signout') {
-      this.setState({isSignedIn: false})
+      this.setState(initialState);
     } else if (route === 'home') {
       this.setState({isSignedIn: true})
     }
